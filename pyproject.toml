@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ja-ncm"
+version = "0.1.0"
+description = "Train Next-Concept Models (NCM) from scratch, with same-budget diffusion (MDLM) and autoregressive baselines"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE", "ncm/LICENSE"]
+requires-python = ">=3.12"
+authors = [{ name = "Ronan Takizawa" }]
+keywords = ["next-concept-modeling", "ncm", "language-model", "diffusion", "japanese"]
+# Versions used for the ja-NCM runs (8x H100, CUDA 13.0, Python 3.12) and the CPU tests (Python 3.14).
+# On a CUDA host, install the torch build that matches its driver first if the default wheel does not.
+dependencies = [
+    "torch==2.14.1",
+    "numpy==2.5.4",
+    "omegaconf==2.3.1",
+    "hydra-core==1.3.7",
+    "transformers==5.20.2",
+    "tokenizers==0.23.3",
+    "huggingface_hub[cli]==2.3.0",
+    "regex==2026.9.29",
+    "sacrebleu==2.6.0",
+    "rouge_score==0.1.2",
+    "pyarrow==26.0.0",
+    "sentencepiece==0.2.2",
+    "safetensors",
+]
+
+[project.optional-dependencies]
+# Japanese metrics: MeCab tokenisation for BLEU (ja-mecab) and word-level ROUGE.
+ja = ["fugashi==1.5.2", "unidic-lite==1.0.8", "sacrebleu[ja]==2.6.0"]
+dev = ["pytest==9.1.1"]
+# COMET (scripts/score_comet.py) is NOT an extra: unbabel-comet pins numpy<2 and transformers<5.
+# Install it in a separate environment from requirements-comet.txt.
+
+[project.urls]
+"Model weights" = "https://huggingface.co/ronantakizawa/ja-ncm"
+Paper = "https://arxiv.org/abs/2610.14162"
+"Upstream NCM" = "https://github.com/HazyResearch/ncm"
+
+[tool.setuptools]
+# Only jancm is a package. The vendored upstream code in ncm/ uses top-level imports
+# (from models..., from tokenization...); importing jancm puts ncm/ on sys.path. That needs the
+# source tree, so install in editable mode: pip install -e .
+packages = ["jancm"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

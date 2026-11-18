@@ -1,0 +1,4 @@
+# Japanese-output metrics (Phase B, en->ja and summarisation). Not needed for Phase A (ja->en).
+fugashi==1.5.2
+unidic-lite==1.0.8
+sacrebleu[ja]==2.6.0

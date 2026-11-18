@@ -1,0 +1,28 @@
+# Conditional diffusion baseline for summarisation: prefix MDLM the same size as the NCM
+# summariser (12 x 768), initialised from the 12 x 768 unconditional MDLM's EMA weights, on the
+# distilled summaries with the NCM / AR recipe (60k steps, batch 256, lr 1e-4, dropout 0.3,
+# 1,024-token article prefix). Stage 2 is ja_summ_xlsum_mdlm.yaml.
+base: configs/phase_b_v3/ja_summ_ar.yaml
+task: v3_ja_summ_mdlm
+checkpoints:
+  init_mdlm: runs/phase_b_v3/ja_uncond_mdlm/last.pt
+  init_mdlm_weights: ema
+mdlm:
+  n_layer: 12
+  n_head: 12
+  n_embd: 768
+  dropout: 0.3
+  rope_base: 100000
+  init_emb_from_vqvae: true
+generation:
+  mdlm_cond_steps: 32
+  mdlm_order: random          # MDLM ancestral order; confidence order truncates summaries
+  mdlm_temperature: 0.0
+train:
+  out_dir: runs/phase_b_v3/ja_summ_mdlm
+  micro_batch_size: 8
+  betas: [0.9, 0.999]
+  weight_decay: 0.0
+  ema: 0.9999
+  save_every: 0
+  ce_chunk_rows: 8192

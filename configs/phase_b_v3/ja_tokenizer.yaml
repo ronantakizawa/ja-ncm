@@ -1,0 +1,9 @@
+# v3 Japanese VQ tokenizer: the v2 recipe (code corruption, full 25,957 x 2,048 schedule) on
+# the llm-jp-3 corpus.
+base: [configs/phase_b/ja_tokenizer.yaml, configs/phase_b_v3/_llmjp.yaml]
+task: v3_ja_tokenizer
+data:
+  train: data/phase_b_v3/corpus/train
+  dev: data/phase_b_v3/corpus/dev
+tokenizer_train:
+  out_dir: runs/phase_b_v3/ja_tokenizer

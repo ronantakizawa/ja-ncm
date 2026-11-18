@@ -1,0 +1,8 @@
+base: [configs/phase_b/ja_summ.yaml, configs/phase_b_v3/_llmjp.yaml]
+task: v3_ja_summ
+checkpoints:
+  init_generator: runs/phase_b_v3/ja_uncond_xsum/best.pt
+data:
+  dir: data/phase_b_v3/summ
+train:
+  out_dir: runs/phase_b_v3/ja_summ

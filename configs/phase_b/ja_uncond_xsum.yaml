@@ -1,0 +1,20 @@
+# Phase B2: unconditional pre-training of the XSum-style generator used for summarisation.
+# The paper's XSum generator "is initially trained with unpaired text, then with source-target
+# pairs" (Appendix C); this is the unpaired stage, on the same corpus windows and budget as
+# ja_uncond.yaml so the two pre-trained generators are comparable.
+#
+# Generator = released XSum model block (12 x 768, query_level0, output heads tied to the
+# tokenizer codebooks with a learned scale, no shared head, no post-upsample convolutions).
+# Tokenizer = the shared Japanese tokenizer (128-token window, 12 levels, 8,192 codes); the
+# XSum tokenizer's 48-token window cannot hold Japanese summaries (p99 123 Qwen3 tokens).
+base: configs/phase_b/ja_uncond.yaml
+task: ja_uncond_xsum
+model:
+  post_upsample_conv:
+    enabled: false
+  shared_output_head: false
+  shared_head_per_level_bias: false
+  tie_heads_to_codebook: true
+  tie_heads_learn_scale: true
+train:
+  out_dir: runs/phase_b/ja_uncond_xsum

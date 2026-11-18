@@ -1,0 +1,25 @@
+# Same-size autoregressive baseline, trained on the same prepared data and mixture.
+# Inherits tokenizer/data/model.prefix_len from the NCM config so both read identical inputs.
+base: configs/ja_en_ncm.yaml
+ar:
+  n_layer: 12
+  n_head: 12
+  n_embd: 768
+  dropout: 0.1
+  rope_base: 100000
+  init_emb_from_vqvae: true   # same 151,680 x 384 table NCM's prefix uses
+  freeze_emb: false
+  sep_token: <|im_start|>
+generation:
+  max_new_tokens: 64          # = NCM target window, so both models can emit the same lengths
+  use_kv_cache: true
+train:
+  out_dir: runs/ja_en_ar
+  steps: 30000
+  batch_size: 256
+  micro_batch_size: 32
+  ce_chunk_rows: 4096          # AR output CE in chunks: never materialise [B, L, 151680] logits
+  lr: 3.0e-4                  # from scratch except the embedding table
+  lr_floor: 3.0e-5
+  warmup: 1000
+  weight_decay: 0.1

@@ -1,0 +1,37 @@
+# Phase B2 fine-tune: Japanese summarisation (article prefix -> summary) with the XSum-style
+# generator (tied codebook heads), from its own unconditional pre-training
+# (ja_uncond_xsum.yaml). Stage 1 trains on the distilled 100-character summaries; stage 2
+# (ja_summ_xlsum.yaml) fine-tunes on human-written XL-Sum ja.
+base: configs/phase_b/ja_uncond_xsum.yaml
+task: ja_summ
+checkpoints:
+  init_generator: runs/phase_b/ja_uncond_xsum/best.pt
+model:
+  prefix_len: 1024             # XSum: 512. XL-Sum ja article p50 = 1,020 Qwen3 tokens
+  dropout: 0.3                 # released XSum generator (conditional training)
+data:
+  kind: pairs
+  dir: data/phase_b/summ
+  target_fill: pad
+  mixture:
+    distill: 1.0
+    xlsum: 0.0
+generation:                    # greedy, as the released XSum config
+  temperature: 0.0
+  top_k: 1
+  top_p: 0.0
+  use_kv_cache: true
+train:
+  out_dir: runs/phase_b/ja_summ
+  steps: 60000                 # guess: fine-tuning, not the 350k from-scratch XSum run
+  batch_size: 256
+  micro_batch_size: 16         # 1,024 prefix + 609 target positions per sequence
+  lr: 1.0e-4
+  lr_floor: 1.0e-5
+  warmup: 500
+  eval_every: 2000
+  eval_loss_n: 2048
+  eval_bleu_n: 256             # in-loop proxy (ja-mecab BLEU); score ROUGE with evaluate.py
+  eval_samples: 0
+eval:
+  batch_size: 32

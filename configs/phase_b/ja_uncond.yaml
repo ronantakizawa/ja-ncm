@@ -1,0 +1,73 @@
+# Phase B2: unconditional Japanese NCM pre-training on the tokenizer's corpus windows.
+# Generator architecture and recipe follow the released LM1B-small model (97M) and paper
+# Table 6, except rope_base 100,000 (as XSum / WMT14) because the fine-tunes extend the
+# prefix to 1,024 tokens.
+base: configs/phase_b/ja_tokenizer.yaml
+task: ja_uncond
+checkpoints:
+  tokenizer: runs/phase_b/ja_tokenizer/tokenizer.pt
+  init_generator: null
+model:
+  n_layer: 12
+  n_head: 12
+  bias: true
+  dropout: 0.1
+  n_embd: 768
+  prefix_len: 1                # null prefix: one EOS token
+  raw_token_prefix: true
+  prefix_pad_token_id: 151643
+  vocab_size: [8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192]
+  predict_level0: false
+  query_level0: true           # level 0 from a learned query; same parameters in every fine-tune
+  attn_pattern: block_diagonal
+  use_positional_encoding: true
+  use_level_encoding: true
+  use_rope: true
+  rope_base: 100000
+  use_qk_norm: true
+  use_flex_attention: false
+  ctx_encoder:
+    enabled: false
+  post_upsample_conv:
+    enabled: true
+    kernel_size: 3
+  shared_output_head: true
+  shared_head_per_level_bias: true
+generation:                    # unconditional sampling
+  temperature: 1.0
+  top_k: 0
+  top_p: 1.0
+  cfg_scale: 0.0
+  use_kv_cache: true
+train:                         # paper Table 6, LM1B column: 100k x 512 x 128 = 6.55B positions
+  out_dir: runs/phase_b/ja_uncond
+  seed: 42
+  steps: 100000
+  batch_size: 512              # global
+  micro_batch_size: 64         # per GPU (610 target positions per sequence)
+  lr: 5.0e-4                   # authors' OWT generator configs (iskhare/owtsmall-repro-ctx256, ncm-owt-8sq-ctx64-16k)
+  lr_floor: 3.0e-5
+  warmup: 300
+  weight_decay: 0.1
+  betas: [0.9, 0.99]
+  grad_clip: 1.0
+  loss_alpha: 0.0
+  corruption:                  # authors' OWT generator recipe: per-level 0.85 -> 0.60, level 0 clean.
+    mode: linear               # Do not reuse the tokenizer's U(0,1) per-sequence code corruption here: in a
+    start: 0.85                # 10k-step LM1B ablation it gave gen-PPL 330 against 188 for this schedule
+    end: 0.6                   # (matched entropy).
+    skip_level0: true
+  bf16: true
+  compile: false
+  log_every: 50
+  eval_every: 2000
+  eval_loss_n: 4096
+  eval_bleu_n: 0
+  eval_samples: 4
+  save_every: 10000
+  save_every_minutes: 15       # last.pt (resume state) at least this often: bounds work lost to preemption
+  sync_cmd: ""                 # e.g. "rsync -a {out_dir}/ /shared/RUN/" (runs after each save)
+eval:
+  batch_size: 64
+  target_lang: ja
+  ppl_model: llm-jp/llm-jp-3-1.8b

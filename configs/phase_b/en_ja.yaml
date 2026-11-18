@@ -1,0 +1,38 @@
+# Phase B2 fine-tune: English -> Japanese translation from the unconditional generator.
+# Data: scripts/prepare_data.py --config configs/phase_b/en_ja.yaml --direction en-ja
+# (the Phase A corpora reversed; NTREX-128 becomes the natural direction: English originals).
+base: configs/phase_b/ja_uncond.yaml
+task: en_ja
+checkpoints:
+  init_generator: runs/phase_b/ja_uncond/best.pt
+model:
+  prefix_len: 128
+data:
+  kind: pairs
+  dir: data/phase_b/en_ja
+  target_eos: true
+  target_fill: pad
+  mixture:
+    kftt: 0.45
+    mitsua: 0.15
+    tatoeba: 0.25
+    alt: 0.10
+    mitsua_labels: 0.05
+generation:
+  temperature: 0.0
+  top_k: 1
+  top_p: 0.0
+  use_kv_cache: true
+train:
+  out_dir: runs/phase_b/en_ja
+  steps: 30000
+  batch_size: 256
+  micro_batch_size: 32
+  lr: 1.0e-4
+  lr_floor: 1.0e-5
+  warmup: 500
+  eval_every: 1000
+  eval_bleu_n: 512
+  eval_samples: 0
+eval:
+  batch_size: 64

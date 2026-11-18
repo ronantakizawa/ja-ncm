@@ -1,0 +1,11 @@
+# v2 AR fine-tune recipe (own optimizer pinned there) on the v3 llm-jp-3 data.
+base: [configs/phase_b/en_ja_ar.yaml, configs/phase_b_v3/_llmjp.yaml]
+task: v3_en_ja_ar
+checkpoints:
+  init_ar: runs/phase_b_v3/ja_uncond_ar/best.pt
+ar:
+  sep_token: <SEP|LLM-jp>
+data:
+  dir: data/phase_b_v3/en_ja
+train:
+  out_dir: runs/phase_b_v3/en_ja_ar

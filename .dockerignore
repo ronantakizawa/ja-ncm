@@ -1,0 +1,11 @@
+.venv
+.venv-comet
+**/__pycache__
+.pytest_cache
+data
+runs
+results
+artifacts
+logs
+*.pt
+*.safetensors

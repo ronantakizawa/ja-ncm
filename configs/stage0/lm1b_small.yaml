@@ -1,0 +1,90 @@
+# Stage 0 (B0): train the LM1B-small generator (97M) from scratch with our loop on top of the
+# released frozen LM1B tokenizer, and compare its samples with the released generator
+# (scripts/gates.py stage0: gen-PPL under GPT-2-large at matched entropy, limit 1.25x).
+# model block = released lm1b/small/config.yaml; steps/batch = paper Table 6, LM1B column;
+# optimizer and corruption = the authors' OWT generator configs (see the train block).
+base: configs/stage0/lm1b_tokenizer.yaml
+task: stage0_lm1b_small
+checkpoints:
+  tokenizer: artifacts/lm1b/tokenizer.pt
+  init_generator: null
+  reference_generator: artifacts/lm1b/small/generator.pt
+model:
+  n_layer: 12
+  n_head: 12
+  bias: true
+  dropout: 0.1
+  n_embd: 768
+  context_length: 129
+  prefix_len: 1
+  raw_token_prefix: true
+  prefix_pad_token_id: 0
+  vocab_size:
+  - 8192
+  - 8192
+  - 8192
+  - 8192
+  - 8192
+  - 8192
+  - 8192
+  - 8192
+  - 8192
+  - 8192
+  - 8192
+  - 8192
+  predict_level0: false
+  query_level0: true
+  attn_pattern: block_diagonal
+  use_positional_encoding: true
+  use_level_encoding: true
+  use_rope: true
+  rope_base: 10000
+  use_qk_norm: true
+  use_flex_attention: false
+  ctx_encoder:
+    enabled: false
+    n_layer: 4
+    vocab_size: 30528
+  post_upsample_conv:
+    enabled: true
+    kernel_size: 3
+  shared_output_head: true
+  shared_head_per_level_bias: true
+generation:
+  temperature: 1.0
+  top_k: 0
+  top_p: 1.0
+  cfg_scale: 0.0
+  use_kv_cache: true
+  cut_at_eos: false            # LM1B: EOS ([CLS]) separates sentences inside a window
+train:
+  out_dir: runs/stage0/lm1b_small_v2
+  seed: 42
+  steps: 100000
+  batch_size: 512
+  micro_batch_size: 64
+  lr: 5.0e-4                   # authors' OWT generator configs (iskhare/owtsmall-repro-ctx256, ncm-owt-8sq-ctx64-16k)
+  lr_floor: 3.0e-05
+  warmup: 300
+  weight_decay: 0.1
+  betas: [0.9, 0.99]
+  grad_clip: 1.0
+  loss_alpha: 0.0
+  corruption:                  # authors' OWT generator recipe: per-level 0.85 -> 0.60, level 0 clean.
+    mode: linear               # Do not reuse the tokenizer's U(0,1) per-sequence code corruption here: in a
+    start: 0.85                # 10k-step LM1B ablation it gave gen-PPL 330 against 188 for this schedule
+    end: 0.6                   # (matched entropy).
+    skip_level0: true
+  bf16: true
+  compile: false
+  log_every: 50
+  eval_every: 2000
+  eval_loss_n: 8192
+  eval_bleu_n: 0
+  eval_samples: 4
+  save_every: 10000
+  save_every_minutes: 15       # last.pt (resume state) at least this often: bounds work lost to preemption
+  sync_cmd: ""                 # e.g. "rsync -a {out_dir}/ /shared/RUN/" (runs after each save)
+eval:
+  batch_size: 64
+  target_lang: en

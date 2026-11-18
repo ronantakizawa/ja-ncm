@@ -1,0 +1,15 @@
+# Versions verified on macOS arm64 / Python 3.14 (CPU smoke tests). On a CUDA host, install the
+# torch build matching its CUDA driver first, then the rest.
+torch==2.14.1
+numpy==2.5.4
+omegaconf==2.3.1
+hydra-core==1.3.7
+transformers==5.20.2
+tokenizers==0.23.3
+huggingface_hub==2.3.0
+regex==2026.9.29
+sacrebleu==2.6.0
+rouge_score==0.1.2
+pyarrow==26.0.0
+pytest==9.1.1
+sentencepiece==0.2.2

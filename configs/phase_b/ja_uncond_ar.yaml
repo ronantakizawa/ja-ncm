@@ -1,0 +1,28 @@
+# Same-size AR baseline for Phase B, pre-trained on the same corpus windows and token budget.
+# Fine-tunes (ja_summ_ar.yaml, en_ja_ar.yaml) start from it, so NCM and AR share the
+# pre-train-then-fine-tune recipe (the paper trains each task from scratch).
+base: configs/phase_b/ja_uncond.yaml
+task: ja_uncond_ar
+checkpoints:
+  init_ar: null
+ar:
+  n_layer: 12
+  n_head: 12
+  n_embd: 768
+  dropout: 0.1
+  rope_base: 100000
+  init_emb_from_vqvae: true    # the Japanese tokenizer's encoder table, as NCM's prefix uses
+  freeze_emb: false
+  sep_token: <|im_start|>
+generation:
+  max_new_tokens: 128
+  ar_temperature: 1.0          # unconditional sampling at eval
+  ar_top_p: 1.0
+train:
+  out_dir: runs/phase_b/ja_uncond_ar
+  # AR keeps its own optimizer; the NCM recipe in ja_uncond.yaml (lr 5e-4, betas 0.99,
+  # heavy code corruption) is NCM-specific and would otherwise be inherited here.
+  betas: [0.9, 0.95]
+  lr: 3.0e-4
+  warmup: 1000
+  ce_chunk_rows: 4096

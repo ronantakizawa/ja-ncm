@@ -1,0 +1,32 @@
+# Same-size masked diffusion baseline (MDLM) for the Japanese NCM: the comparison the paper's
+# selling points are about (quality at far fewer NFE, wall-clock speed, training tokens).
+# Same windows, tokenizer table and budget as ja_uncond (NCM) and ja_uncond_ar (AR):
+# 100k steps x 512 x 128 = 6.55B positions. The paper's LM1B diffusion baselines used 66B.
+# Optimiser and EMA follow MDLM (Sahoo et al., 2024): AdamW 3e-4, betas 0.9/0.999, no weight
+# decay, 2.5k warmup, EMA 0.9999. Our LR then decays to 3e-5 like every other run here.
+base: configs/phase_b/ja_uncond.yaml
+task: ja_uncond_mdlm
+checkpoints:                   # token-table init: the Japanese tokenizer's encoder table
+  tokenizer: runs/phase_b/ja_tokenizer/tokenizer.pt
+mdlm:
+  n_layer: 12
+  n_head: 12
+  n_embd: 768
+  dropout: 0.1
+  rope_base: 100000
+  init_emb_from_vqvae: true    # the Japanese tokenizer's encoder table, as NCM's prefix and AR use
+generation:
+  mdlm_steps: [8, 16, 32, 64, 128]   # NFE sweep for the quality-vs-NFE curve (NCM: 12)
+train:
+  out_dir: runs/phase_b/ja_uncond_mdlm
+  lr: 3.0e-4
+  lr_floor: 3.0e-5
+  warmup: 2500
+  betas: [0.9, 0.999]
+  weight_decay: 0.0
+  ema: 0.9999
+  ce_chunk_rows: 8192
+  eval_every: 5000
+  eval_loss_n: 2048
+  eval_samples: 2
+  save_every: 20000

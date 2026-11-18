@@ -1,0 +1,28 @@
+# English control for the v3 diffusion result: masked diffusion (MDLM, jancm/mdlm.py) on LM1B
+# with the Stage 0 NCM's model size (12 x 768), data (released LM1B windows, BERT vocabulary),
+# token budget (100k steps x 512 x 128 = 6.55B positions) and scoring (scripts/gates.py
+# stage0 protocol: GPT-2-large, matched entropy against the released NCM generator). The
+# paper's LM1B diffusion baselines trained on ~66B positions, 10x this. Optimiser and EMA as
+# MDLM (Sahoo et al., 2024), as in configs/phase_b/ja_uncond_mdlm.yaml.
+base: configs/stage0/lm1b_small.yaml
+task: stage0_lm1b_mdlm
+mdlm:
+  n_layer: 12
+  n_head: 12
+  n_embd: 768
+  dropout: 0.1
+  rope_base: 10000
+  init_emb_from_vqvae: true    # released LM1B tokenizer's encoder table, as the NCM prefix uses
+train:
+  out_dir: runs/stage0/lm1b_mdlm
+  lr: 3.0e-4
+  lr_floor: 3.0e-5
+  warmup: 2500
+  betas: [0.9, 0.999]
+  weight_decay: 0.0
+  ema: 0.9999
+  ce_chunk_rows: 8192
+  eval_every: 5000
+  eval_loss_n: 2048
+  eval_samples: 2
+  save_every: 0

@@ -1,0 +1,14 @@
+# Shared v3 block: llm-jp-3 text tokenizer + the v3 data and run locations. Every v3 config
+# lists this file last in `base:` so it overrides the Qwen3 settings of the v2 config it extends.
+tokenizer:
+  pre_tokenizer:
+    model_id: llm-jp/llm-jp-3-1.8b
+    special_tokens:
+      eos_token: </s>
+      pad_token: <PAD|LLM-jp>
+  vqvae:
+    in_vocab_size: 99584       # 99,574 tokens padded to a multiple of 64
+checkpoints:
+  tokenizer: runs/phase_b_v3/ja_tokenizer/tokenizer.pt
+model:
+  prefix_pad_token_id: 4       # <PAD|LLM-jp>

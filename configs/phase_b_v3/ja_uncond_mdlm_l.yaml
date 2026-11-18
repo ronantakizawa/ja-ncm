@@ -1,0 +1,13 @@
+# Size-matched MDLM: same 24 x 1024 transformer as the v3 NCM generator (ja_uncond.yaml), so
+# quality and latency compare like for like (ja_uncond_mdlm.yaml is 12 x 768). Same data,
+# tokenizer table, 100k x 512 budget and MDLM optimiser. Step checkpoints keep raw and EMA weights.
+base: configs/phase_b_v3/ja_uncond_mdlm.yaml
+task: v3_ja_uncond_mdlm_l
+mdlm:
+  n_layer: 24
+  n_head: 16
+  n_embd: 1024
+train:
+  out_dir: runs/phase_b_v3/ja_uncond_mdlm_l
+  micro_batch_size: 32
+  save_every: 10000

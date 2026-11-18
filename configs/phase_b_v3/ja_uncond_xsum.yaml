@@ -1,0 +1,7 @@
+base: [configs/phase_b/ja_uncond_xsum.yaml, configs/phase_b_v3/_llmjp.yaml]
+task: v3_ja_uncond_xsum
+data:
+  train: data/phase_b_v3/corpus/train
+  dev: data/phase_b_v3/corpus/dev
+train:
+  out_dir: runs/phase_b_v3/ja_uncond_xsum

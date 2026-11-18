@@ -1,0 +1,20 @@
+# AR counterpart of ja_summ_xlsum.yaml: the same short XL-Sum ja fine-tune (3k steps, lr 3e-5)
+# from the distilled AR summariser, so NCM+XL-Sum and AR+XL-Sum compare like for like.
+base: configs/phase_b_v3/ja_summ_ar.yaml
+task: v3_ja_summ_xlsum_ar
+checkpoints:
+  init_ar: runs/phase_b_v3/ja_summ_ar/best.pt
+data:
+  mixture:
+    distill: 0.0
+    xlsum: 1.0
+train:
+  out_dir: runs/phase_b_v3/ja_summ_xlsum_ar
+  steps: 3000
+  batch_size: 64
+  micro_batch_size: 8
+  lr: 3.0e-5
+  lr_floor: 3.0e-6
+  warmup: 100
+  eval_every: 500
+  save_every: 1000

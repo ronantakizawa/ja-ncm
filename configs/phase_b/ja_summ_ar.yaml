@@ -1,0 +1,22 @@
+# AR summarisation baseline: ja_summ.yaml data and schedule, initialised from ja_uncond_ar.
+base: configs/phase_b/ja_summ.yaml
+task: ja_summ_ar
+checkpoints:
+  init_ar: runs/phase_b/ja_uncond_ar/best.pt
+ar:
+  n_layer: 12
+  n_head: 12
+  n_embd: 768
+  dropout: 0.3
+  rope_base: 100000
+  init_emb_from_vqvae: true
+  freeze_emb: false
+  sep_token: <|im_start|>
+generation:
+  max_new_tokens: 128
+  ar_temperature: 0.0
+train:
+  out_dir: runs/phase_b/ja_summ_ar
+  # AR keeps its own optimizer; the NCM recipe in ja_uncond.yaml (lr 5e-4, betas 0.99,
+  # heavy code corruption) is NCM-specific and would otherwise be inherited here.
+  betas: [0.9, 0.95]

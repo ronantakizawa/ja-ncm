@@ -1,0 +1,20 @@
+# Stage 2 of summarisation: short fine-tune on human-written XL-Sum ja (CC BY-NC-SA 4.0,
+# so the resulting weights are research-only). Report the headline score on XL-Sum ja test.
+base: configs/phase_b/ja_summ.yaml
+task: ja_summ_xlsum
+checkpoints:
+  init_generator: runs/phase_b/ja_summ/best.pt
+data:
+  mixture:
+    distill: 0.0
+    xlsum: 1.0
+train:
+  out_dir: runs/phase_b/ja_summ_xlsum
+  steps: 3000                  # XL-Sum ja train has about 7k articles
+  batch_size: 64
+  micro_batch_size: 8
+  lr: 3.0e-5
+  lr_floor: 3.0e-6
+  warmup: 100
+  eval_every: 500
+  save_every: 1000

@@ -1,0 +1,94 @@
+# Phase B1: Japanese multiscale residual VQ-VAE (concept tokenizer), trained from scratch.
+# Architecture follows the released LM1B tokenizer (the closest released case: 128-token
+# windows, unconditional pre-training), with the Qwen3 pre-tokenizer of the WMT14 model.
+# Every Phase B generator config inherits this file through `base:`; retraining the
+# tokenizer means retraining every generator built on it.
+task: ja_tokenizer
+tokenizer:
+  pre_tokenizer:
+    name: hf
+    tokenizer: hf
+    model_id: Qwen/Qwen3-0.6B
+    special_tokens:
+      eos_token: <|im_end|>
+      pad_token: <|endoftext|>
+  vqvae:
+    n_layers: 6                # attention heads (upstream naming)
+    embed_dim: 384
+    in_vocab_size: 151680
+    context_length: 128        # one window serves summaries (p99 123 tokens) and en->ja targets
+    compression_factor: 1
+    dropout: 0.1
+    use_qk_norm: true
+    pre_quant_groupnorm: 4
+    pre_quant_dropout: 0.0
+    enc_positional: false
+    dec_positional: true
+    dec_layers: 4              # LM1B: 4 (99.86% recon). Japanese may need more; budget 2-3 runs
+    vqvae_vocab_size: [8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192]
+    checkpoint_path: tokenizer.pt
+    vector_quantizer_config:
+      clss: multiscale_residual_vector_quantizer
+      decay: 0.99
+      epsilon: 1.0e-05
+      commitment_cost: 0.25
+      learned_l1_sampling: true
+      learned_l1_cascade: false
+      learned_l1_cascade_base: 4
+      learned_all_sampling: false
+      restart_threshold: 0.0   # >0 re-seeds codes whose EMA count falls below it (dead codes)
+      quant_resi:
+        enabled: true
+        ratio: 0.5
+        share_mode: 0
+        learnable_ratio: false
+      levels:
+        use_manual_levels: true
+        # Plan guessed [4, 8, ..., 128]; starting at 1 code matches every released
+        # unconditional tokenizer and lets level 0 come from one learned query.
+        manual_levels: [1, 4, 8, 16, 24, 32, 48, 64, 80, 96, 112, 128]
+      aux:
+        fine_drop:             # nested dropout, LM1B recipe: full + truncated hierarchy each step
+          dual: true
+          prob: 1.0
+          min_keep: 1
+          w_full: 0.7
+          w_trunc: 0.3
+        code_corruption:       # released LM1B tokenizer config; v1 of this tokenizer ran without it
+          enabled: true        # (the key was not implemented), and its decoder lost far more tokens on
+          mode: uniform        # wrong codes (50% of levels 1-6: 94.8% vs released 99.7%), so generated
+          random_rate: true    # codes decoded badly (ja_uncond gen-PPL ~1100 vs AR 131).
+          low: 0.0
+          high: 1.0
+          skip_level0: true
+          weight: 0.5          # ours: the released config gives no weight for this term
+data:
+  kind: windows
+  train: data/phase_b/corpus/train
+  dev: data/phase_b/corpus/dev
+  window: 128
+tokenizer_train:              # paper Table 5, LM1B column
+  out_dir: runs/phase_b/ja_tokenizer
+  seed: 42
+  steps: 25957
+  batch_size: 2048             # global batch per optimizer step (paper Table 5)
+  micro_batch_size: 256        # per GPU; 8 GPUs -> no accumulation
+  ema_per_optimizer_step: true # codebook EMA from the whole global batch, once per step
+  lr: 3.0e-4
+  lr_floor: 3.0e-5
+  warmup: 1000
+  betas: [0.9, 0.99]
+  weight_decay: 0.05
+  grad_clip: 1.0
+  bf16: true
+  ce_chunk_rows: 8192
+  log_every: 50
+  eval_every: 1000
+  eval_n: 4096
+  eval_bs: 64
+  save_every: 2000
+  save_every_minutes: 15       # last.pt (resume state) at least this often: bounds work lost to preemption
+  sync_cmd: ""                 # e.g. "rsync -a {out_dir}/ /shared/RUN/" (runs after each save)
+  kmeans_init:                 # data-dependent codebook init; without it the codebooks collapse
+    windows: 16384             # >= level-0 codebook size (one level-0 vector per window)
+    iters: 10

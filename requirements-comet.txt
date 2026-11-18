@@ -1,0 +1,5 @@
+# Separate virtualenv for scripts/score_comet.py: unbabel-comet pins numpy<2, transformers<5
+# and huggingface-hub<1, which conflict with the main project environment.
+unbabel-comet==2.2.7
+# torchmetrics 0.10 (pinned by comet) imports pkg_resources, removed in setuptools 81.
+setuptools==80.9.0

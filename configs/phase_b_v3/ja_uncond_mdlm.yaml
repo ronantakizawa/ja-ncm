@@ -1,0 +1,11 @@
+# v3 MDLM baseline on the llm-jp-3 windows; checkpoints at 10k/20k/... for the training-token curve.
+base: [configs/phase_b/ja_uncond_mdlm.yaml, configs/phase_b_v3/_llmjp.yaml]
+task: v3_ja_uncond_mdlm
+checkpoints:
+  tokenizer: runs/phase_b_v3/ja_tokenizer/tokenizer.pt   # token-table init, as AR and NCM's prefix
+data:
+  train: data/phase_b_v3/corpus/train
+  dev: data/phase_b_v3/corpus/dev
+train:
+  out_dir: runs/phase_b_v3/ja_uncond_mdlm
+  save_every: 10000

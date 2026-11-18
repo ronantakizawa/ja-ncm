@@ -1,0 +1,21 @@
+# Stage 2 for the diffusion summariser: the same XL-Sum ja fine-tune as ja_summ_xlsum.yaml
+# (NCM) and ja_summ_xlsum_ar.yaml (AR), from the distilled-summary MDLM's raw best weights.
+base: configs/phase_b_v3/ja_summ_mdlm.yaml
+task: v3_ja_summ_xlsum_mdlm
+checkpoints:
+  init_mdlm: runs/phase_b_v3/ja_summ_mdlm/best.pt
+  init_mdlm_weights: raw
+data:
+  mixture:
+    distill: 0.0
+    xlsum: 1.0
+train:
+  out_dir: runs/phase_b_v3/ja_summ_xlsum_mdlm
+  steps: 3000
+  batch_size: 64
+  micro_batch_size: 8
+  lr: 3.0e-5
+  lr_floor: 3.0e-6
+  warmup: 100
+  eval_every: 500
+  save_every: 0

@@ -1,0 +1,117 @@
+# Phase A: fine-tune the released WMT14 De->En NCM generator on Japanese->English pairs.
+# model/tokenizer blocks are copied from hazyresearch/ncm-checkpoints wmt14/config.yaml;
+# the only architectural change is prefix_len 96 -> 128 (RoPE, so no new parameters).
+task: ja_en
+checkpoints:
+  init_generator: artifacts/wmt14/generator.pt   # starting point
+  tokenizer: artifacts/wmt14/tokenizer.pt        # frozen English concept tokenizer
+model:
+  n_layer: 12
+  n_head: 12
+  bias: true
+  dropout: 0.1
+  n_embd: 768
+  context_length: 192
+  prefix_len: 128            # WMT14: 96. KFTT ja p99 = 118 Qwen3 tokens
+  raw_token_prefix: true
+  prefix_pad_token_id: 151643
+  vocab_size: [4096, 4096, 4096, 4096, 4096, 4096, 4096, 4096, 4096, 4096]
+  predict_level0: true
+  attn_pattern: block_diagonal
+  use_positional_encoding: true
+  use_level_encoding: true
+  use_rope: true
+  rope_base: 100000
+  use_qk_norm: true
+  ctx_encoder:
+    enabled: false
+    n_layer: 4
+    vocab_size: 50304
+  use_flex_attention: false
+  untied_head_bias: false
+tokenizer:
+  pre_tokenizer:
+    name: hf
+    tokenizer: hf
+    model_id: Qwen/Qwen3-0.6B
+    special_tokens:
+      eos_token: <|im_end|>
+      pad_token: <|endoftext|>
+  vqvae:
+    n_layers: 6
+    embed_dim: 384
+    in_vocab_size: 151680
+    context_length: 64       # target window: English output must fit in 63 tokens + EOS
+    compression_factor: 1
+    dropout: 0.1
+    pre_quant_groupnorm: 8
+    use_qk_norm: true
+    pre_quant_dropout: 0.25
+    vqvae_vocab_size: [4096, 4096, 4096, 4096, 4096, 4096, 4096, 4096, 4096, 4096, 4096]
+    checkpoint_path: tokenizer.pt
+    vector_quantizer_config:
+      clss: multiscale_residual_vector_quantizer
+      decay: 0.99
+      epsilon: 1.0e-05
+      commitment_cost: 0.25
+      learned_l1_sampling: true
+      learned_l1_cascade: true
+      learned_l1_cascade_base: 4
+      learned_l1_cascade_norm: true
+      learned_l1_cascade_norm_final: true
+      learned_all_sampling: false
+      quant_resi:
+        enabled: true
+        ratio: 0.5
+        share_mode: 0
+        learnable_ratio: false
+      aux:
+        fine_drop:
+          prob: 0.5
+          min_keep: 1
+      levels:
+        use_manual_levels: true
+        manual_levels: [1, 4, 8, 14, 20, 26, 32, 40, 48, 56, 64]
+data:
+  dir: data/processed
+  target_eos: true           # target = English ids + EOS ...
+  target_fill: pad           # ... then PAD. Measured: the WMT14 tokenizer reconstructs PAD-filled targets better (README)
+  # Corpus proportions per batch (guesses; tune on dev BLEU).
+  mixture:
+    kftt: 0.45
+    mitsua: 0.15             # Wikidata descriptions
+    tatoeba: 0.25
+    alt: 0.10
+    mitsua_labels: 0.05      # Wikidata entity names (short; helps KFTT proper nouns)
+generation:
+  temperature: 0.0           # greedy, as the released WMT14 config (top_k: 1)
+  top_k: 1
+  top_p: 0.0
+  cfg_scale: 0.0
+  use_kv_cache: true         # safe after the ja-ncm pad-mask patch
+train:
+  out_dir: runs/ja_en_ncm
+  seed: 42
+  steps: 30000
+  batch_size: 256            # global batch per optimizer step (any GPU count)
+  micro_batch_size: 32       # per GPU; gradient accumulation makes up the rest
+  lr: 1.0e-4                 # paper from-scratch peak is 3e-4; lower for fine-tuning (guess)
+  lr_floor: 1.0e-5
+  warmup: 500
+  weight_decay: 0.01
+  betas: [0.9, 0.95]
+  grad_clip: 1.0
+  loss_alpha: 0.0            # w_k ~ l_k^-alpha; 0 = every code equal (ELBO)
+  corrupt_start: 0.5         # replacement prob at level 1, linearly down to corrupt_end
+  corrupt_end: 0.1           # (paper TinyStories recipe: mean 0.5; Appendix F.3)
+  bf16: true
+  compile: false
+  log_every: 50
+  eval_every: 1000
+  eval_loss_n: 4096          # dev pairs for dev loss at each eval
+  eval_bleu_n: 512           # greedy dev BLEU on this many dev pairs at each eval
+  save_every: 5000
+  save_every_minutes: 15       # last.pt (resume state) at least this often: bounds work lost to preemption
+  sync_cmd: ""                 # e.g. "rsync -a {out_dir}/ /shared/RUN/" (runs after each save)
+eval:
+  batch_size: 64

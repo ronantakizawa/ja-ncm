@@ -1,0 +1,27 @@
+# Conditional diffusion baseline for en->ja: prefix MDLM (jancm/mdlm.py, source never masked),
+# same size as the en->ja NCM (24 x 1024), initialised from the size-matched unconditional
+# MDLM's EMA weights. Data, steps, batch, LR schedule and checkpoint selection (dev BLEU) as
+# the NCM and AR en->ja fine-tunes; optimiser as MDLM (betas 0.9/0.999, no weight decay).
+base: configs/phase_b_v3/en_ja_ar.yaml
+task: v3_en_ja_mdlm
+checkpoints:
+  init_mdlm: runs/phase_b_v3/ja_uncond_mdlm_l/last.pt
+  init_mdlm_weights: ema
+mdlm:
+  n_layer: 24
+  n_head: 16
+  n_embd: 1024
+  dropout: 0.1
+  rope_base: 100000
+  init_emb_from_vqvae: true
+generation:
+  mdlm_cond_steps: 32          # NFE for in-loop dev BLEU; the evaluation sweeps 16-128
+  mdlm_order: random          # MDLM ancestral order; confidence order truncates summaries
+  mdlm_temperature: 0.0
+train:
+  out_dir: runs/phase_b_v3/en_ja_mdlm
+  betas: [0.9, 0.999]
+  weight_decay: 0.0
+  ema: 0.9999
+  save_every: 0
+  ce_chunk_rows: 8192

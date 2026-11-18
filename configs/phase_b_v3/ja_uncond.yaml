@@ -1,0 +1,22 @@
+# v3 unconditional NCM: 24 x 1024 generator (authors' follow-ups: -12% to -24% gen-PPL vs
+# 12 x 768) with self-correcting targets at 0.50 -> 0.30 (v2 fine-tune test: ~8% better at
+# matched entropy, higher entropy ceiling). Checkpoints every 10k for the training-token curve.
+base: [configs/phase_b/ja_uncond.yaml, configs/phase_b_v3/_llmjp.yaml]
+task: v3_ja_uncond
+model:
+  n_layer: 24
+  n_head: 16
+  n_embd: 1024
+data:
+  train: data/phase_b_v3/corpus/train
+  dev: data/phase_b_v3/corpus/dev
+train:
+  out_dir: runs/phase_b_v3/ja_uncond
+  micro_batch_size: 32
+  corruption:
+    mode: linear
+    start: 0.5
+    end: 0.3
+    skip_level0: true
+    self_correct: true
+  save_every: 10000

@@ -1,0 +1,13 @@
+base: [configs/phase_b/en_ja.yaml, configs/phase_b_v3/_llmjp.yaml]
+task: v3_en_ja
+checkpoints:
+  init_generator: runs/phase_b_v3/ja_uncond/best.pt
+model:                         # same generator as the v3 ja_uncond it starts from
+  n_layer: 24
+  n_head: 16
+  n_embd: 1024
+data:
+  dir: data/phase_b_v3/en_ja
+train:
+  out_dir: runs/phase_b_v3/en_ja
+  micro_batch_size: 16

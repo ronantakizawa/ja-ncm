@@ -1,0 +1,116 @@
+# Stage 0 (B0): retrain the LM1B concept tokenizer from scratch with our loop and compare it
+# with the released artifacts/lm1b/tokenizer.pt (paper Table 1: 99.86% reconstruction).
+# tokenizer block = released lm1b/small/config.yaml; training = paper Table 5, LM1B column.
+# Note: Table 5 says LM1B used 4 decoder blocks, dropout 0.1, EMA 0.99, nested dropout 0.7/0.3.
+tokenizer:
+  pre_tokenizer:
+    name: hf
+    tokenizer: hf
+    model_id: bert-base-uncased
+    special_tokens:
+      eos_token: '[CLS]'
+      pad_token: '[PAD]'
+  vqvae:
+    n_layers: 6
+    embed_dim: 384
+    in_vocab_size: 30528
+    context_length: 128
+    compression_factor: 1
+    dropout: 0.1
+    use_qk_norm: true
+    pre_quant_groupnorm: 4
+    pre_quant_dropout: 0.0
+    enc_positional: false
+    dec_positional: true
+    dec_layers: 4
+    vqvae_vocab_size:
+    - 8192
+    - 8192
+    - 8192
+    - 8192
+    - 8192
+    - 8192
+    - 8192
+    - 8192
+    - 8192
+    - 8192
+    - 8192
+    - 8192
+    checkpoint_path: tokenizer.pt
+    vector_quantizer_config:
+      clss: multiscale_residual_vector_quantizer
+      decay: 0.99
+      epsilon: 1.0e-05
+      commitment_cost: 0.25
+      learned_l1_sampling: true
+      learned_l1_cascade: false
+      learned_l1_cascade_base: 4
+      learned_all_sampling: false
+      quant_resi:
+        enabled: true
+        ratio: 0.5
+        share_mode: 0
+        learnable_ratio: false
+      levels:
+        use_manual_levels: true
+        manual_levels:
+        - 1
+        - 8
+        - 16
+        - 24
+        - 32
+        - 40
+        - 52
+        - 64
+        - 76
+        - 92
+        - 108
+        - 128
+      aux:
+        fine_drop:
+          dual: true
+          prob: 1.0
+          min_keep: 1
+          w_full: 0.7
+          w_trunc: 0.3
+        code_corruption:
+          enabled: true
+          mode: uniform
+          random_rate: true
+          low: 0.0
+          high: 1.0
+          skip_level0: true
+task: stage0_lm1b_tokenizer
+data:
+  kind: windows
+  train: data/upstream/lm1b/train_bert_30522.bin
+  dev: data/upstream/lm1b/valid_bert_30522.bin
+  window: 128
+  dtype: uint16
+tokenizer_train:
+  out_dir: runs/stage0/lm1b_tokenizer
+  seed: 42
+  steps: 25957
+  batch_size: 2048
+  micro_batch_size: 256
+  ema_per_optimizer_step: true
+  lr: 0.0003
+  lr_floor: 3.0e-05
+  warmup: 1000
+  betas:
+  - 0.9
+  - 0.99
+  weight_decay: 0.05
+  grad_clip: 1.0
+  bf16: true
+  ce_chunk_rows: 8192
+  log_every: 50
+  eval_every: 1000
+  eval_n: 4096
+  eval_bs: 64
+  save_every: 2000
+  save_every_minutes: 15       # last.pt (resume state) at least this often: bounds work lost to preemption
+  sync_cmd: ""                 # e.g. "rsync -a {out_dir}/ /shared/RUN/" (runs after each save)
+  kmeans_init:                 # data-dependent codebook init; without it the codebooks collapse
+    windows: 16384             # >= level-0 codebook size (one level-0 vector per window)
+    iters: 10
