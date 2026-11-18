@@ -1,6 +1,6 @@
-# ja-NCM: train your own Next-Concept Model
+# ja-NCM: A Japanese Next-Concept Foundation Model
 
-Code to train a Next-Concept Model (NCM) from scratch, plus same-budget masked diffusion (MDLM) and autoregressive (AR) baselines to compare it with. It was used to build ja-NCM, one of the first open-weight Japanese NCM foundation models.
+Code I used train a Japanese Next-Concept Foundation Model from scratch, plus same-budget masked diffusion (MDLM) and autoregressive (AR) baselines to compare it with. 
 
 - **Model weights:** https://huggingface.co/ronantakizawa/ja-ncm
 - **Paper:** Next-Concept Modeling: Fast, Parallel Coarse-to-Fine Text Generation (Khare et al., 2026), https://arxiv.org/abs/2610.14162
